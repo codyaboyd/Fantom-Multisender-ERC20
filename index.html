@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<title>FractalAirFTM</title>
+	<link rel="shortcut icon" type="image/png" href="img\favicon.png"/>
+	<script src="web3.min.js"></script>
+	<script src="jquery.min.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="css/theme-styles.css">
+	<link rel="stylesheet" type="text/css" href="css/blocks.css">
+	<link rel="stylesheet" type="text/css" href="css/widgets.css">
+	<link rel="stylesheet" type="text/css" href="css/font-awesome.css">
+	<link rel="stylesheet" type="text/css" href="css/styles.css">
+
+	<link href="https://fonts.googleapis.com/css?family=Playfair+Display:400,400i,700i,900," rel="stylesheet">
+
+</head>
+
+<body class="crumina-grid">
+
+<div class="main-content-wrapper">
+	<section data-settings="particles-1" class="main-section crumina-flying-balls particles-js bg-1 medium-padding120 responsive-align-center">
+		<div class="container">
+			<div class="row">
+				<div class="col-lg-5 col-md-12 col-sm-12 col-xs-12">
+					<img class="responsive-width-50" src="img/BSCflameLex.png" alt="image">
+				</div>
+				<div class="col-lg-7 col-md-12 col-sm-12 col-xs-12">
+					<header class="crumina-module crumina-heading heading--h1 heading--with-decoration">
+						<h1 class="heading-title heading--half-colored f-size-90 weight-normal no-margin">DISTRIBUTE<br>
+							<span class="weight-bold">FTM</span></h1>
+						<h2 class="c-primary weight-bold">TOKENS</h2>
+					</header>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section data-settings="particles-1" class="main-section crumina-flying-balls bg-1 responsive-align-center">
+		<div class="container" id="formContainer">
+					<form class="register-form form--dark" onsubmit="return false;">
+						<header class="crumina-module crumina-heading heading--h2 heading--with-decoration">
+							<h2 class="heading-title heading--half-colored">FractalAir</h2>
+							<p>* Required</p>
+						</header>
+						<div class="form-group label-floating is-empty">
+							<input id="tokenAddress" class="form-control input--squared input--dark" name="name" type="text" placeholder="Token Contract *">
+						</div>
+						<div class="form-group label-floating is-empty spacing">
+							Token Name:
+							<span id="tokenName">?</span>
+						</div>
+						<div class="form-group label-floating is-empty spacing">
+							Your Tokens:
+							<span id="tokenBalance">?</span>
+						</div>
+						<div class="form-group label-floating is-empty spacing">
+							Decimals:
+							<span id="tokenDecimals">?</span>
+						</div>
+						<button id="approveButton" class="btn btn--large btn--green-light btn--with-icon btn--icon-right full-width spacing">
+							Approve Tokens
+							<svg class="woox-icon icon-arrow-right"><use xlink:href="#icon-arrow-right"></use></svg>
+						</button>
+
+
+						<div class="form-group label-floating">
+								<textarea id="relativeShares" name="message" class="form-control input--squared input--dark height-170" placeholder="Enter FTM address and amount of FTM sent per wallet."></textarea>
+						</div>
+						<br>
+				    <div class="spacing">Tokens to distribute:</div>
+				    <input id="tokenstodistribute" type="number"/>
+				    <br>
+						<button id="distribute" class="btn btn--large btn--primary full-width">Distribute Tokens</button>
+					</form>
+		</div>
+	</section>
+
+
+	<section>
+		<div class="container">
+
+			<hr class="divider">
+
+			<div class="row medium-padding80">
+				<div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+					<div class="tabs tabs--style6">
+						<ul role="tablist">
+							<li role="presentation" class="tab-control active">
+								<a href="#tab-25" role="tab" data-toggle="tab" class="control-item">
+									<h6 class="tab-title">How To Use </h6>
+								</a>
+							</li>
+							<li role="presentation" class="tab-control">
+								<a href="#tab-26" role="tab" data-toggle="tab" class="control-item">
+									<h6 class="tab-title">Example </h6>
+								</a>
+							</li>
+
+						</ul>
+						<div class="tab-content">
+							<div role="tabpanel" class="tab-pane fade active" id="tab-25">
+								<div class="row">
+									<div class="col-xs-12 crumina-module crumina-pricing-table pricing-table--small">
+										<h4 class="tab-content-title">Instructions</h4>
+
+										<p>1. Find the contract address for the token you wish to dstribute.</p>
+										<p>2. Copy and paste it into the "Token Contract" field in the correct format.</p>
+										<p>3. Click the approve button and fire the transaction and wait for it to confirm.</p>
+										<p>4. Enter each wallet you would like to send tokens to, followed by a comma and then the amount of FTM that wallet previously sent to you for their OTC contribution.</p>
+										<p>5. Use a new line for each wallet address and its respective amount of FTM.</p>
+										<p>6. Input the total number of tokens that you are distributing as a collective total in the "Tokens To Distribute" field.</p>
+										<p>7. The FractalAir dapp will calculate each wallets share of tokens according to the formula: <i>FTM From Wallet/Total FTM Sum</i>.</p>
+										<p>7. Click the DISTRIBUTE button and fire off the transaction.</p>
+										<p>8. All tokens should be distributed accordingly once the transaction confirms.</p>
+										<p>9. Check on FTMscan to confirm the distribution was successful.</p>
+										<div class="col-xs-12 align-center mt60 mb30 w-100">
+											<img class="block-rounded" src="img/FractalFTM.png" alt="image">
+										</div>
+									</div>
+								</div>
+							</div>
+							<div role="tabpanel" class="tab-pane fade" id="tab-26">
+								<div class="row">
+									<div class="col-xs-12">
+										<h4 class="tab-content-title">Input Data:</h4>
+										<div class="crumina-module crumina-pricing-table pricing-table--small">
+										<p>0x97874b0c9d5a70233a895bce1cf2608b3f8c4009,5</p>
+										<p>0xda07f6a0f65165571738f0e38f49aab2b65f977d,10</p>
+										<p>0x318fc08d92275957d9024c9f1f12df54542af7c0,1</p>
+										<p>0x1f8a6d8185b76f5ac08f335610a2390dab3225a8,4</p>
+
+									</div>
+									<div class="col-xs-12 align-center w-100">
+										<img class="block-rounded" src="img/FractalFTM.png">
+									</div>
+								</div>
+							</div>
+
+
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</section>
+
+
+</div>
+<script src="abi.js?v=0.1"></script>
+<script src="interface.js?v=0.1"></script>
+<script src="main.js?v=0.1"></script>
+
+<script src="js/method-assign.js"></script>
+
+<!-- jQuery first, then Other JS.
+
+<script src="js/jquery-3.3.1.js"></script>
+-->
+<script src="js/js-plugins/leaflet.js"></script>
+<script src="js/js-plugins/MarkerClusterGroup.js"></script>
+<script src="js/js-plugins/crum-mega-menu.js"></script>
+<script src="js/js-plugins/waypoints.js"></script>
+<script src="js/js-plugins/jquery-circle-progress.js"></script>
+<script src="js/js-plugins/segment.js"></script>
+<script src="js/js-plugins/bootstrap.js"></script>
+<script src="js/js-plugins/imagesLoaded.js"></script>
+<script src="js/js-plugins/jquery.matchHeight.js"></script>
+<script src="js/js-plugins/jquery-countTo.js"></script>
+<script src="js/js-plugins/Headroom.js"></script>
+<script src="js/js-plugins/jquery.magnific-popup.js"></script>
+<script src="js/js-plugins/popper.min.js"></script>
+<script src="js/js-plugins/perfect-scrollbar.js"></script>
+<script src="js/js-plugins/jquery.datetimepicker.full.js"></script>
+<script src="js/js-plugins/svgxuse.js"></script>
+<script src="js/js-plugins/select2.js"></script>
+<script src="js/js-plugins/smooth-scroll.js"></script>
+<script src="js/js-plugins/sharer.js"></script>
+<script src="js/js-plugins/isotope.pkgd.min.js"></script>
+<script src="js/js-plugins/ajax-pagination.js"></script>
+<script src="js/js-plugins/swiper.min.js"></script>
+<script src="js/js-plugins/material.min.js"></script>
+<script src="js/js-plugins/orbitlist.js"></script>
+<script src="js/js-plugins/highstock.js"></script>
+<script src="js/js-plugins/bootstrap-datepicker.js"></script>
+<script src="js/js-plugins/TimeCircles.js"></script>
+<script src="js/js-plugins/ion.rangeSlider.js"></script>
+
+<!-- FontAwesome 5.x.x JS -->
+
+<script defer src="fonts/fontawesome-all.js"></script>
+
+<script src="js/main.js"></script>
+
+<!-- SVG icons loader -->
+<script src="js/svg-loader.js"></script>
+<!-- /SVG icons loader -->
+
+</body>
+</html>
