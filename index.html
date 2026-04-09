@@ -6,6 +6,7 @@
 	<title>MultiSend EVM + Solana | Batch Token & Native Transfers</title>
 	<link rel="shortcut icon" type="image/png" href="img\favicon.png"/>
 	<script src="web3.min.js"></script>
+	<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.17.1/dist/index.umd.js"></script>
 	<script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
 	<script src="jquery.min.js"></script>
 
@@ -65,6 +66,13 @@
 								<option value="8453">Base</option>
 								<option value="43114">Avalanche C-Chain</option>
 							</select>
+						</div>
+						<div id="evmConnectorGroup" class="form-group label-floating is-empty spacing">
+							<div id="evmConnectionStatus">Wallet: Not connected</div>
+							<input id="walletConnectProjectId" class="form-control input--squared input--dark spacing" type="text" placeholder="Reown / WalletConnect Project ID (for WalletConnect)">
+							<button id="connectInjectedButton" class="btn btn--small btn--green-light full-width spacing">Connect Browser Wallet (MetaMask / Rabby)</button>
+							<button id="connectWalletConnectButton" class="btn btn--small btn--green-light full-width spacing">Connect WalletConnect (Reown)</button>
+							<button id="disconnectWalletButton" class="btn btn--small btn--primary full-width spacing">Disconnect EVM Wallet</button>
 						</div>
 						<button id="switchNetworkButton" class="btn btn--large btn--green-light btn--with-icon btn--icon-right full-width spacing">
 							Switch Wallet Network
