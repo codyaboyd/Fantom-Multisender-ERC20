@@ -86,6 +86,10 @@ function updateMultisenderAddressInput(chainId){
 }
 
 function setAirdropContractFromInput() {
+  if(!window.web3){
+    alert('Please connect an EVM wallet (for example MetaMask) first.')
+    return false
+  }
   const input = document.getElementById('multisenderAddress')
   const value = (input.value || '').trim()
   if(!web3.utils.isAddress(value)){
@@ -155,10 +159,7 @@ function setup(){
     }
     // Non-dapp browsers...
     else {
-      alert('please ensure https://metamask.io/ is installed and connected ')
-      //web3 = new Web3('wss://ropsten.infura.io/ws');
-      web3 = new Web3('https://rpcapi.fantom.network');
-      console.log('Non-Web3 browser detected. You should consider trying MetaMask!');
+      console.log('No injected EVM wallet detected; EVM actions require MetaMask or another compatible wallet.')
     }
     document.getElementById('networkSelect').onchange = onNetworkChanged
     document.getElementById('distributionType').onchange = function(){
@@ -177,18 +178,26 @@ function setup(){
     if(typeof toggleDistributionUI === 'function'){
       toggleDistributionUI(document.getElementById('distributionType').value)
     }
-    setAirdropContractFromInput()
+    if(window.web3){
+      setAirdropContractFromInput()
+    }
 
-    web3.eth.net.getId().then(function(nid){
-      window.netId=nid;
-			console.log('netid ',window.netId)
-    })
+    if(window.web3){
+      web3.eth.net.getId().then(function(nid){
+        window.netId=nid;
+        console.log('netid ',window.netId)
+      })
+    }
 
-    window.ethereum.on('chainChanged', function(){
-      window.location.reload()
-    })
+    if(window.ethereum){
+      window.ethereum.on('chainChanged', function(){
+        window.location.reload()
+      })
+    }
 
-    window.airdropContract=new web3.eth.Contract(airdropAbi,airdropContractAddress)
+    if(window.web3){
+      window.airdropContract=new web3.eth.Contract(airdropAbi,airdropContractAddress)
+    }
 		window.main()
   });
 }
