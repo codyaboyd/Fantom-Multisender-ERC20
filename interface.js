@@ -161,6 +161,11 @@ function setup(){
       console.log('Non-Web3 browser detected. You should consider trying MetaMask!');
     }
     document.getElementById('networkSelect').onchange = onNetworkChanged
+    document.getElementById('distributionType').onchange = function(){
+      if(typeof toggleDistributionUI === 'function'){
+        toggleDistributionUI(this.value)
+      }
+    }
     document.getElementById('switchNetworkButton').onclick = async function(){
       try{
         await switchNetwork()
@@ -169,6 +174,9 @@ function setup(){
       }
     }
     onNetworkChanged()
+    if(typeof toggleDistributionUI === 'function'){
+      toggleDistributionUI(document.getElementById('distributionType').value)
+    }
     setAirdropContractFromInput()
 
     web3.eth.net.getId().then(function(nid){
