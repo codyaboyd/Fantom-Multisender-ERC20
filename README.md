@@ -1,7 +1,7 @@
-# Fantom Multisender (ERC-20)
+# MultiSend ERC-20 (Major EVM Networks)
 
-A lightweight web app for sending **ERC-20 tokens to multiple recipients in one workflow**.  
-This project is designed for token distributions such as airdrops, rewards, and batch payouts on EVM-compatible networks.
+A lightweight web app for sending **ERC-20 tokens to multiple recipients in one workflow** across major EVM chains.  
+This project is designed for token distributions such as airdrops, rewards, and batch payouts on Ethereum, BNB Smart Chain, Polygon, Fantom, Arbitrum, Optimism, Base, and Avalanche.
 
 ## What this project does
 
@@ -15,7 +15,9 @@ This project is designed for token distributions such as airdrops, rewards, and 
 
 - Simple browser-based UI
 - ERC-20 multisend workflow
-- Works with common EVM wallets
+- Network selector for major EVM chains
+- Wallet network switch helper (`wallet_switchEthereumChain`)
+- Configurable multisender contract address per selected chain
 - Static files only (easy to host on any web server)
 
 ## Quick start
@@ -56,6 +58,7 @@ Then open the local URL shown in your terminal (commonly `http://127.0.0.1:8080`
 - **Always test with a small amount first** before running large distributions.
 - Verify recipient lists carefully; blockchain transactions are irreversible.
 - Confirm network/chain selection in your wallet before submitting transactions.
+- Ensure the multisender contract address is correct for the selected chain before approving tokens.
 
 ## License
 
