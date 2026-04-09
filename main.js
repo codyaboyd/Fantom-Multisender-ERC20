@@ -147,6 +147,9 @@ function buy2(){
 */
 function approve2(){
   if(DEBUG){console.log('approve2')}
+  if(!setAirdropContractFromInput()){
+    return;
+  }
   web3.eth.getAccounts(function (err, accounts) {
     address=accounts[0]
     tokenContract.methods.approve(airdropContractAddress,web3.utils.toWei("10000000000",'ether')).send({from:address}).then(function(err,result){
@@ -156,6 +159,9 @@ function approve2(){
 }
 function distribute2(){
   if(DEBUG){console.log('distribute2')}
+  if(!setAirdropContractFromInput()){
+    return;
+  }
   web3.eth.getAccounts(function (err, accounts) {
     var address=accounts[0]
 //airdrop(address[] memory toAirdrop,uint[] memory ethFromEach,uint totalEth,uint tokensRewarded,address tokenAddress) public{
@@ -165,7 +171,8 @@ function distribute2(){
       return;
     }
     //Number(tokensToDistribute)*(10**tokenDecimals)
-    tokensToDistribute=web3.utils.toBN(tokensToDistribute).mul(web3.utils.toBN(10**tokenDecimals))//web3.utils.toWei(tokensToDistribute,'ether')
+    const decimalsFactor = web3.utils.toBN(10).pow(web3.utils.toBN(tokenDecimals))
+    tokensToDistribute=web3.utils.toBN(tokensToDistribute).mul(decimalsFactor)//web3.utils.toWei(tokensToDistribute,'ether')
     var text=document.getElementById('relativeShares').value
     console.log('.aeigroaejrgo')
     var values=processTextValues(text)
