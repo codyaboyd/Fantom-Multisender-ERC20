@@ -2,6 +2,7 @@ var DEBUG=true
 
 var startTime=0
 var tokenDecimals=0
+var distributionType='erc20'
 
 function main(){
     if(DEBUG){console.log('test')}
@@ -20,12 +21,17 @@ function refreshData(){
   //document.getElementById('buyButton').onclick=buy2;
   document.getElementById('approveButton').onclick=approve2;
   document.getElementById('distribute').onclick=distribute2;
+  const distributionTypeInput = document.getElementById('distributionType')
+  if(distributionTypeInput){
+    distributionType = distributionTypeInput.value || 'erc20'
+  }
+  toggleDistributionUI(distributionType)
 
   web3.eth.getAccounts(function (err, accounts) {
     let addr=accounts[0]
     oldEthAddress=addr
     tokenContractAddress=document.getElementById('tokenAddress').value
-    if(tokenContractAddress){
+    if(distributionType==='erc20' && tokenContractAddress){
       window.tokenContract=new web3.eth.Contract(tokenAbi,tokenContractAddress)
       tokenContract.methods.decimals().call().then(function(decimals){
         tokenDecimals=decimals;
@@ -41,6 +47,32 @@ function refreshData(){
     //processRecentEvents()
     //updateReflink()
   })
+}
+function toggleDistributionUI(mode){
+  const isNative = mode === 'native'
+  const idsToToggle = [
+    'tokenAddressGroup',
+    'tokenNameGroup',
+    'tokenBalanceGroup',
+    'tokenDecimalsGroup',
+    'approveButton'
+  ]
+  idsToToggle.forEach(function(id){
+    const element = document.getElementById(id)
+    if(element){
+      element.style.display = isNative ? 'none' : ''
+    }
+  })
+  const textarea = document.getElementById('relativeShares')
+  const totalAmountLabel = document.getElementById('totalAmountLabel')
+  if(textarea){
+    textarea.placeholder = isNative
+      ? 'Enter recipient address and native amount per wallet (address,amount).'
+      : 'Enter recipient address and relative weight per wallet (address,weight).'
+  }
+  if(totalAmountLabel){
+    totalAmountLabel.textContent = isNative ? 'Native amount to distribute:' : 'Tokens to distribute:'
+  }
 }
 function addToList(listid,content){
   var list = document.getElementById(listid);
@@ -159,55 +191,105 @@ function approve2(){
 }
 function distribute2(){
   if(DEBUG){console.log('distribute2')}
-  if(!setAirdropContractFromInput()){
+  if(distributionType==='erc20' && !setAirdropContractFromInput()){
     return;
   }
   web3.eth.getAccounts(function (err, accounts) {
     var address=accounts[0]
-//airdrop(address[] memory toAirdrop,uint[] memory ethFromEach,uint totalEth,uint tokensRewarded,address tokenAddress) public{
-    var tokensToDistribute=document.getElementById('tokenstodistribute').value
-    if(!tokenDecimals){
-      alert('please wait for token to load')
-      return;
+    if(distributionType==='native'){
+      distributeNative(address)
+      return
     }
-    //Number(tokensToDistribute)*(10**tokenDecimals)
-    const decimalsFactor = web3.utils.toBN(10).pow(web3.utils.toBN(tokenDecimals))
-    tokensToDistribute=web3.utils.toBN(tokensToDistribute).mul(decimalsFactor)//web3.utils.toWei(tokensToDistribute,'ether')
-    var text=document.getElementById('relativeShares').value
-    console.log('.aeigroaejrgo')
-    var values=processTextValues(text)
-    console.log('.aeigroaejrgo2')
-    if(!values){
-      alert('check your text formatting, one comma per line etc')
-      return null;
-    }
-    if(values.addresses.length!=values.amounts.length){
-      alert('mismatch in address/amount counts')
-      return null;
-    }
-    console.log('distributing with parameters ',values,tokensToDistribute.toString(),tokenContractAddress)
-    airdropContract.methods.airdrop(values.addresses,values.amounts,values.total.toString(),tokensToDistribute.toString(),tokenContractAddress).send({from:address}).then(function(err,result){
-      if(DEBUG){console.log('approve')}
-    })
+    distributeErc20(address)
   })
 }
-function processTextValues(text){
+function distributeErc20(address){
+  //airdrop(address[] memory toAirdrop,uint[] memory ethFromEach,uint totalEth,uint tokensRewarded,address tokenAddress) public{
+  var tokensToDistribute=document.getElementById('tokenstodistribute').value
+  if(!tokenDecimals){
+    alert('please wait for token to load')
+    return;
+  }
+  if(Number(tokensToDistribute)<=0){
+    alert('please enter a token amount greater than zero')
+    return;
+  }
+  const decimalsFactor = web3.utils.toBN(10).pow(web3.utils.toBN(tokenDecimals))
+  tokensToDistribute=web3.utils.toBN(tokensToDistribute).mul(decimalsFactor)
+  var text=document.getElementById('relativeShares').value
+  var values=processTextValues(text, true)
+  if(!values){
+    alert('check your text formatting, one comma per line etc')
+    return null;
+  }
+  if(values.addresses.length!=values.amounts.length){
+    alert('mismatch in address/amount counts')
+    return null;
+  }
+  console.log('distributing with parameters ',values,tokensToDistribute.toString(),tokenContractAddress)
+  airdropContract.methods.airdrop(values.addresses,values.amounts,values.total.toString(),tokensToDistribute.toString(),tokenContractAddress).send({from:address}).then(function(err,result){
+    if(DEBUG){console.log('approve')}
+  })
+}
+async function distributeNative(address){
+  var totalNative=document.getElementById('tokenstodistribute').value
+  if(Number(totalNative)<=0){
+    alert('please enter a native coin amount greater than zero')
+    return;
+  }
+  var text=document.getElementById('relativeShares').value
+  var values=processTextValues(text, false)
+  if(!values){
+    alert('check your text formatting, one comma per line etc')
+    return null;
+  }
+  if(values.addresses.length!=values.amounts.length){
+    alert('mismatch in address/amount counts')
+    return null;
+  }
+  const enteredTotalWei = web3.utils.toBN(web3.utils.toWei(totalNative+'','ether'))
+  if(!values.total.eq(enteredTotalWei)){
+    alert('sum of native amounts does not equal total amount to distribute')
+    return;
+  }
+  for(var i=0;i<values.addresses.length;i++){
+    await web3.eth.sendTransaction({
+      from: address,
+      to: values.addresses[i],
+      value: values.amounts[i]
+    })
+  }
+}
+function processTextValues(text, parseAsWeights){
   var lines=text.split('\n')
   var addresses=[]
   var amounts=[]
   var total=web3.utils.toBN(0)
   for(var i=0;i<lines.length;i++){
+    if(!lines[i] || !lines[i].trim()){
+      continue;
+    }
     var count = (lines[i].match(/,/g) || []).length;
     if(count!=1){
       return null;
     }
     var parts=lines[i].split(',')
-    addresses.push(parts[0])
-    var weivalue=web3.utils.toWei(parts[1]+'','ether')
+    var recipient=(parts[0] || '').trim()
+    var value=(parts[1] || '').trim()
+    if(!web3.utils.isAddress(recipient) || Number(value)<=0){
+      return null;
+    }
+    addresses.push(recipient)
+    var weivalue=web3.utils.toWei(value+'','ether')
     amounts.push(weivalue)
     total=total.add(web3.utils.toBN(weivalue))
   }
-  //total=web3.utils.toWei(total,'ether')
+  if(parseAsWeights && total.isZero()){
+    return null;
+  }
+  if(addresses.length===0){
+    return null;
+  }
   return {total:total,addresses:addresses,amounts:amounts}
 }
 function getQueryVariable(variable)

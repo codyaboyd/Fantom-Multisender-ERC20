@@ -1,13 +1,14 @@
-# MultiSend ERC-20 (Major EVM Networks)
+# MultiSend ERC-20 + Native Coin (Major EVM Networks)
 
-A lightweight web app for sending **ERC-20 tokens to multiple recipients in one workflow** across major EVM chains.  
+A lightweight web app for sending **ERC-20 tokens and native EVM gas coins** to multiple recipients across major EVM chains.  
 This project is designed for token distributions such as airdrops, rewards, and batch payouts on Ethereum, BNB Smart Chain, Polygon, Fantom, Arbitrum, Optimism, Base, and Avalanche.
 
 ## What this project does
 
 - Connects to a Web3 wallet in the browser (for example, MetaMask).
-- Lets you prepare a list of recipient addresses and token amounts.
-- Submits a batch-style token distribution transaction through the app UI.
+- Lets you prepare a list of recipient addresses and token/native amounts.
+- Supports ERC-20 weighted distributions through a multisender contract flow.
+- Supports native coin distributions by sending wallet transactions per recipient.
 
 > This repository is a static frontend. You can serve it locally and interact with deployed contracts from your wallet.
 
@@ -15,6 +16,7 @@ This project is designed for token distributions such as airdrops, rewards, and 
 
 - Simple browser-based UI
 - ERC-20 multisend workflow
+- Native coin multisend workflow (ETH/BNB/MATIC/FTM/AVAX and other EVM native coins)
 - Network selector for major EVM chains
 - Wallet network switch helper (`wallet_switchEthereumChain`)
 - Configurable multisender contract address per selected chain

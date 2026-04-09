@@ -42,9 +42,15 @@
 		<div class="container" id="formContainer">
 					<form class="register-form form--dark" onsubmit="return false;">
 						<header class="crumina-module crumina-heading heading--h2 heading--with-decoration">
-							<h2 class="heading-title heading--half-colored">MultiSend ERC-20</h2>
+							<h2 class="heading-title heading--half-colored">MultiSend ERC-20 + Native Coin</h2>
 							<p>* Required</p>
 						</header>
+						<div class="form-group label-floating is-empty">
+							<select id="distributionType" class="form-control input--squared input--dark">
+								<option value="erc20" selected>ERC-20 Token Distribution (by weight)</option>
+								<option value="native">Native Coin Distribution (ETH / BNB / MATIC / FTM / etc, by amount)</option>
+							</select>
+						</div>
 						<div class="form-group label-floating is-empty">
 							<select id="networkSelect" class="form-control input--squared input--dark">
 								<option value="1">Ethereum</option>
@@ -64,18 +70,18 @@
 						<div class="form-group label-floating is-empty">
 							<input id="multisenderAddress" class="form-control input--squared input--dark" name="name" type="text" placeholder="Multisender Contract *">
 						</div>
-						<div class="form-group label-floating is-empty">
+						<div id="tokenAddressGroup" class="form-group label-floating is-empty">
 							<input id="tokenAddress" class="form-control input--squared input--dark" name="name" type="text" placeholder="Token Contract *">
 						</div>
-						<div class="form-group label-floating is-empty spacing">
+						<div id="tokenNameGroup" class="form-group label-floating is-empty spacing">
 							Token Name:
 							<span id="tokenName">?</span>
 						</div>
-						<div class="form-group label-floating is-empty spacing">
+						<div id="tokenBalanceGroup" class="form-group label-floating is-empty spacing">
 							Your Tokens:
 							<span id="tokenBalance">?</span>
 						</div>
-						<div class="form-group label-floating is-empty spacing">
+						<div id="tokenDecimalsGroup" class="form-group label-floating is-empty spacing">
 							Decimals:
 							<span id="tokenDecimals">?</span>
 						</div>
@@ -89,10 +95,10 @@
 									<textarea id="relativeShares" name="message" class="form-control input--squared input--dark height-170" placeholder="Enter recipient address and relative weight per wallet (address,weight)."></textarea>
 						</div>
 						<br>
-				    <div class="spacing">Tokens to distribute:</div>
+				    <div id="totalAmountLabel" class="spacing">Tokens to distribute:</div>
 				    <input id="tokenstodistribute" type="number"/>
 				    <br>
-						<button id="distribute" class="btn btn--large btn--primary full-width">Distribute Tokens</button>
+						<button id="distribute" class="btn btn--large btn--primary full-width">Distribute</button>
 					</form>
 		</div>
 	</section>
@@ -125,17 +131,14 @@
 									<div class="col-xs-12 crumina-module crumina-pricing-table pricing-table--small">
 										<h4 class="tab-content-title">Instructions</h4>
 
-								<p>1. Select your target network (Ethereum, BNB Chain, Polygon, Fantom, Arbitrum, Optimism, Base, or Avalanche).</p>
-								<p>2. Click "Switch Wallet Network" to match your wallet to the selected chain.</p>
-								<p>3. Enter the deployed multisender contract address for the selected network.</p>
-								<p>4. Find the ERC-20 token contract address you want to distribute.</p>
-								<p>5. Paste the token contract into the "Token Contract" field.</p>
-								<p>6. Click "Approve Tokens" and confirm the approval transaction.</p>
-								<p>7. Enter each recipient and weight value as <i>address,weight</i> on separate lines.</p>
-								<p>8. Input the total number of tokens to distribute in "Tokens to distribute".</p>
-								<p>9. The app calculates each wallet's share using <i>Wallet Weight / Total Weight</i>.</p>
-								<p>10. Click "Distribute Tokens" and confirm the transaction.</p>
-								<p>11. Verify the resulting transfers in your selected network explorer.</p>
+								<p>1. Select a distribution type: ERC-20 token or native coin (ETH/BNB/MATIC/FTM/etc).</p>
+								<p>2. Select your target network (Ethereum, BNB Chain, Polygon, Fantom, Arbitrum, Optimism, Base, or Avalanche).</p>
+								<p>3. Click "Switch Wallet Network" to match your wallet to the selected chain.</p>
+								<p>4. For ERC-20 mode: enter multisender contract + token contract, then click "Approve Tokens".</p>
+								<p>5. For ERC-20 mode: provide lines in <i>address,weight</i> format and enter total tokens to distribute.</p>
+								<p>6. For native mode: provide lines in <i>address,amount</i> format and enter total native coins to distribute.</p>
+								<p>7. Click "Distribute" and confirm transactions in your wallet.</p>
+								<p>8. Verify resulting transfers in your selected network explorer.</p>
 										<div class="col-xs-12 align-center mt60 mb30 w-100">
 											<img class="block-rounded" src="img/FractalFTM.png" alt="image">
 										</div>
