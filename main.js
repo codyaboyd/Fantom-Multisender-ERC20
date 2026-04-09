@@ -3,6 +3,7 @@ var DEBUG=true
 var startTime=0
 var tokenDecimals=0
 var distributionType='erc20'
+var splTokenDecimals=0
 
 function main(){
     if(DEBUG){console.log('test')}
@@ -27,6 +28,16 @@ function refreshData(){
   }
   toggleDistributionUI(distributionType)
 
+  if(distributionType==='sol' || distributionType==='spl'){
+    if(distributionType==='spl'){
+      refreshSplTokenData()
+    }
+    return
+  }
+  if(!window.web3){
+    return
+  }
+
   web3.eth.getAccounts(function (err, accounts) {
     let addr=accounts[0]
     oldEthAddress=addr
@@ -50,6 +61,8 @@ function refreshData(){
 }
 function toggleDistributionUI(mode){
   const isNative = mode === 'native'
+  const isSolana = mode === 'sol' || mode === 'spl'
+  const isSpl = mode === 'spl'
   const idsToToggle = [
     'tokenAddressGroup',
     'tokenNameGroup',
@@ -60,18 +73,51 @@ function toggleDistributionUI(mode){
   idsToToggle.forEach(function(id){
     const element = document.getElementById(id)
     if(element){
-      element.style.display = isNative ? 'none' : ''
+      if(isSolana){
+        element.style.display = 'none'
+      } else {
+        element.style.display = isNative ? 'none' : ''
+      }
     }
   })
+  const evmControls = ['networkSelect','switchNetworkButton','multisenderAddress']
+  evmControls.forEach(function(id){
+    const element = document.getElementById(id)
+    if(element){
+      element.style.display = isSolana ? 'none' : ''
+    }
+  })
+  const solanaNetworkGroup = document.getElementById('solanaNetworkGroup')
+  if(solanaNetworkGroup){
+    solanaNetworkGroup.style.display = isSolana ? '' : 'none'
+  }
+  const solanaTokenMintGroup = document.getElementById('solanaTokenMintGroup')
+  if(solanaTokenMintGroup){
+    solanaTokenMintGroup.style.display = isSpl ? '' : 'none'
+  }
   const textarea = document.getElementById('relativeShares')
   const totalAmountLabel = document.getElementById('totalAmountLabel')
   if(textarea){
-    textarea.placeholder = isNative
-      ? 'Enter recipient address and native amount per wallet (address,amount).'
-      : 'Enter recipient address and relative weight per wallet (address,weight).'
+    if(mode==='native'){
+      textarea.placeholder = 'Enter recipient address and native amount per wallet (address,amount).'
+    } else if(mode==='sol'){
+      textarea.placeholder = 'Enter recipient Solana address and SOL amount per wallet (address,amount).'
+    } else if(mode==='spl'){
+      textarea.placeholder = 'Enter recipient Solana address and SPL token amount per wallet (address,amount).'
+    } else {
+      textarea.placeholder = 'Enter recipient address and relative weight per wallet (address,weight).'
+    }
   }
   if(totalAmountLabel){
-    totalAmountLabel.textContent = isNative ? 'Native amount to distribute:' : 'Tokens to distribute:'
+    if(mode==='native'){
+      totalAmountLabel.textContent = 'Native amount to distribute:'
+    } else if(mode==='sol'){
+      totalAmountLabel.textContent = 'SOL amount to distribute:'
+    } else if(mode==='spl'){
+      totalAmountLabel.textContent = 'SPL tokens to distribute:'
+    } else {
+      totalAmountLabel.textContent = 'Tokens to distribute:'
+    }
   }
 }
 function addToList(listid,content){
@@ -179,6 +225,14 @@ function buy2(){
 */
 function approve2(){
   if(DEBUG){console.log('approve2')}
+  if(distributionType==='sol' || distributionType==='spl'){
+    alert('Approval is only required for ERC-20 multisender mode.')
+    return
+  }
+  if(!window.web3){
+    alert('Please connect an EVM wallet first.')
+    return
+  }
   if(!setAirdropContractFromInput()){
     return;
   }
@@ -191,6 +245,18 @@ function approve2(){
 }
 function distribute2(){
   if(DEBUG){console.log('distribute2')}
+  if(distributionType==='sol'){
+    distributeSol()
+    return
+  }
+  if(distributionType==='spl'){
+    distributeSpl()
+    return
+  }
+  if(!window.web3){
+    alert('Please connect an EVM wallet first.')
+    return
+  }
   if(distributionType==='erc20' && !setAirdropContractFromInput()){
     return;
   }
@@ -202,6 +268,228 @@ function distribute2(){
     }
     distributeErc20(address)
   })
+}
+function getSolanaRpcEndpoint(){
+  var cluster=document.getElementById('solanaNetworkSelect').value
+  if(cluster==='devnet'){
+    return 'https://api.devnet.solana.com'
+  }
+  return 'https://api.mainnet-beta.solana.com'
+}
+async function getSolanaProvider(){
+  if(!window.solana || !window.solana.isPhantom){
+    alert('Phantom wallet not detected. Install/open Phantom to use Solana modes.')
+    return null
+  }
+  await window.solana.connect()
+  return window.solana
+}
+function getSolanaConnection(){
+  return new solanaWeb3.Connection(getSolanaRpcEndpoint(), 'confirmed')
+}
+function parseSolanaAddressAmountText(text){
+  var lines=text.split('\n')
+  var recipients=[]
+  var total=0
+  for(var i=0;i<lines.length;i++){
+    if(!lines[i] || !lines[i].trim()){
+      continue
+    }
+    var count = (lines[i].match(/,/g) || []).length;
+    if(count!==1){
+      return null
+    }
+    var parts=lines[i].split(',')
+    var address=(parts[0] || '').trim()
+    var amountStr=(parts[1] || '').trim()
+    var amount=Number(amountStr)
+    try {
+      new solanaWeb3.PublicKey(address)
+    } catch (e){
+      return null
+    }
+    if(!Number.isFinite(amount) || amount<=0){
+      return null
+    }
+    recipients.push({address:address, amount:amount})
+    total+=amount
+  }
+  if(recipients.length===0){
+    return null
+  }
+  return {recipients:recipients,total:total}
+}
+async function distributeSol(){
+  var provider=await getSolanaProvider()
+  if(!provider){
+    return
+  }
+  var values=parseSolanaAddressAmountText(document.getElementById('relativeShares').value)
+  if(!values){
+    alert('Invalid Solana input. Use one "address,amount" pair per line.')
+    return
+  }
+  var totalSol=Number(document.getElementById('tokenstodistribute').value)
+  if(!Number.isFinite(totalSol) || totalSol<=0){
+    alert('Please enter a SOL amount greater than zero.')
+    return
+  }
+  if(Math.abs(values.total-totalSol)>0.000000001){
+    alert('Sum of SOL amounts must match the total amount.')
+    return
+  }
+  const fromPubkey=provider.publicKey
+  const connection=getSolanaConnection()
+  for(var i=0;i<values.recipients.length;i++){
+    const lamports=Math.round(values.recipients[i].amount*solanaWeb3.LAMPORTS_PER_SOL)
+    const tx=new solanaWeb3.Transaction().add(
+      solanaWeb3.SystemProgram.transfer({
+        fromPubkey: fromPubkey,
+        toPubkey: new solanaWeb3.PublicKey(values.recipients[i].address),
+        lamports: lamports
+      })
+    )
+    tx.feePayer = fromPubkey
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash
+    const signed=await provider.signTransaction(tx)
+    await connection.sendRawTransaction(signed.serialize())
+  }
+  alert('SOL distribution submitted successfully.')
+}
+function bigIntToU64LE(value){
+  var buffer=new Uint8Array(8)
+  var current=value
+  for(var i=0;i<8;i++){
+    buffer[i]=Number(current & 255n)
+    current = current >> 8n
+  }
+  return buffer
+}
+function getAssociatedTokenAddress(ownerPubkey, mintPubkey){
+  const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+  const ASSOCIATED_TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+  return solanaWeb3.PublicKey.findProgramAddressSync(
+    [ownerPubkey.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mintPubkey.toBuffer()],
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  )[0]
+}
+async function createAtaInstructionIfNeeded(connection, payerPubkey, ownerPubkey, mintPubkey){
+  const ASSOCIATED_TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+  const SYSTEM_PROGRAM_ID = new solanaWeb3.PublicKey('11111111111111111111111111111111')
+  const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+  const ata = getAssociatedTokenAddress(ownerPubkey, mintPubkey)
+  const accountInfo = await connection.getAccountInfo(ata)
+  if(accountInfo){
+    return {ata:ata,instruction:null}
+  }
+  return {
+    ata:ata,
+    instruction:new solanaWeb3.TransactionInstruction({
+      programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+      keys:[
+        {pubkey:payerPubkey,isSigner:true,isWritable:true},
+        {pubkey:ata,isSigner:false,isWritable:true},
+        {pubkey:ownerPubkey,isSigner:false,isWritable:false},
+        {pubkey:mintPubkey,isSigner:false,isWritable:false},
+        {pubkey:SYSTEM_PROGRAM_ID,isSigner:false,isWritable:false},
+        {pubkey:TOKEN_PROGRAM_ID,isSigner:false,isWritable:false},
+        {pubkey:solanaWeb3.SYSVAR_RENT_PUBKEY,isSigner:false,isWritable:false}
+      ],
+      data:new Uint8Array([])
+    })
+  }
+}
+async function fetchSplTokenDecimals(){
+  var mintAddress=(document.getElementById('solanaTokenMint').value || '').trim()
+  if(!mintAddress){
+    return null
+  }
+  var connection=getSolanaConnection()
+  var mintPubkey
+  try{
+    mintPubkey=new solanaWeb3.PublicKey(mintAddress)
+  } catch (e){
+    return null
+  }
+  var mintInfo=await connection.getParsedAccountInfo(mintPubkey)
+  if(!mintInfo || !mintInfo.value || !mintInfo.value.data || !mintInfo.value.data.parsed){
+    return null
+  }
+  return mintInfo.value.data.parsed.info.decimals
+}
+async function refreshSplTokenData(){
+  const decimals=await fetchSplTokenDecimals()
+  if(decimals===null || typeof decimals==='undefined'){
+    return
+  }
+  splTokenDecimals=Number(decimals)
+}
+async function distributeSpl(){
+  var provider=await getSolanaProvider()
+  if(!provider){
+    return
+  }
+  var mintAddress=(document.getElementById('solanaTokenMint').value || '').trim()
+  if(!mintAddress){
+    alert('Please enter the SPL token mint address.')
+    return
+  }
+  var mintPubkey
+  try{
+    mintPubkey=new solanaWeb3.PublicKey(mintAddress)
+  } catch (e){
+    alert('Invalid SPL token mint address.')
+    return
+  }
+  const decimals=await fetchSplTokenDecimals()
+  if(decimals===null || typeof decimals==='undefined'){
+    alert('Unable to fetch mint decimals on the selected Solana cluster.')
+    return
+  }
+  splTokenDecimals=Number(decimals)
+  var values=parseSolanaAddressAmountText(document.getElementById('relativeShares').value)
+  if(!values){
+    alert('Invalid Solana input. Use one "address,amount" pair per line.')
+    return
+  }
+  var totalTokens=Number(document.getElementById('tokenstodistribute').value)
+  if(!Number.isFinite(totalTokens) || totalTokens<=0){
+    alert('Please enter a token amount greater than zero.')
+    return
+  }
+  if(Math.abs(values.total-totalTokens)>0.000000001){
+    alert('Sum of SPL token amounts must match the total amount.')
+    return
+  }
+  const connection=getSolanaConnection()
+  const owner=provider.publicKey
+  const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+  const senderAta = getAssociatedTokenAddress(owner, mintPubkey)
+  for(var i=0;i<values.recipients.length;i++){
+    const recipientPubkey = new solanaWeb3.PublicKey(values.recipients[i].address)
+    const amountBaseUnits = BigInt(Math.round(values.recipients[i].amount*Math.pow(10,splTokenDecimals)))
+    const ataData = await createAtaInstructionIfNeeded(connection, owner, recipientPubkey, mintPubkey)
+    const recipientAta = ataData.ata
+    const transferInstruction = new solanaWeb3.TransactionInstruction({
+      programId: TOKEN_PROGRAM_ID,
+      keys: [
+        {pubkey:senderAta,isSigner:false,isWritable:true},
+        {pubkey:recipientAta,isSigner:false,isWritable:true},
+        {pubkey:owner,isSigner:true,isWritable:false}
+      ],
+      data: new Uint8Array([3].concat(Array.from(bigIntToU64LE(amountBaseUnits))))
+    })
+    const tx = new solanaWeb3.Transaction()
+    if(ataData.instruction){
+      tx.add(ataData.instruction)
+    }
+    tx.add(transferInstruction)
+    tx.feePayer=owner
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash
+    const signed=await provider.signTransaction(tx)
+    await connection.sendRawTransaction(signed.serialize())
+  }
+  alert('SPL token distribution submitted successfully.')
 }
 function distributeErc20(address){
   //airdrop(address[] memory toAirdrop,uint[] memory ethFromEach,uint totalEth,uint tokensRewarded,address tokenAddress) public{
