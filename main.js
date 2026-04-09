@@ -80,7 +80,12 @@ function toggleDistributionUI(mode){
       }
     }
   })
-  const evmControls = ['networkSelect','switchNetworkButton','multisenderAddress']
+  const evmControls = [
+    'networkSelect',
+    'switchNetworkButton',
+    'multisenderAddress',
+    'evmConnectorGroup'
+  ]
   evmControls.forEach(function(id){
     const element = document.getElementById(id)
     if(element){

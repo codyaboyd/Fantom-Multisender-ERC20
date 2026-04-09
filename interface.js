@@ -66,11 +66,39 @@ const NETWORKS = {
   }
 }
 
+const WALLETCONNECT_PROJECT_ID_KEY = 'walletconnectProjectId'
+const LAST_CONNECTOR_KEY = 'lastEvmConnector'
+
 let airdropContractAddress = NETWORKS[250].multisenderAddress;
+let activeProvider = null
+let activeConnector = null
+let walletConnectProvider = null
 
 function getSelectedChainId() {
   const selectedChainId = document.getElementById('networkSelect').value
   return Number(selectedChainId)
+}
+
+function getWalletConnectProjectId(){
+  const input = document.getElementById('walletConnectProjectId')
+  if (!input) {
+    return ''
+  }
+  return (input.value || '').trim()
+}
+
+function persistWalletConnectProjectId(){
+  const projectId = getWalletConnectProjectId()
+  if(projectId){
+    window.localStorage.setItem(WALLETCONNECT_PROJECT_ID_KEY, projectId)
+  }
+}
+
+function updateConnectionStatus(message){
+  const statusElement = document.getElementById('evmConnectionStatus')
+  if(statusElement){
+    statusElement.textContent = message
+  }
 }
 
 function updateMultisenderAddressInput(chainId){
@@ -82,12 +110,12 @@ function updateMultisenderAddressInput(chainId){
   input.value = network.multisenderAddress
   input.placeholder = network.multisenderAddress !== ZERO_ADDRESS
     ? network.multisenderAddress
-    : "Enter deployed multisender contract address for this network"
+    : 'Enter deployed multisender contract address for this network'
 }
 
 function setAirdropContractFromInput() {
   if(!window.web3){
-    alert('Please connect an EVM wallet (for example MetaMask) first.')
+    alert('Please connect an EVM wallet first.')
     return false
   }
   const input = document.getElementById('multisenderAddress')
@@ -101,20 +129,170 @@ function setAirdropContractFromInput() {
   return true
 }
 
+function getWalletConnectFactory(){
+  const wcNamespace = window['@walletconnect/ethereum-provider']
+  if(!wcNamespace){
+    return null
+  }
+  return wcNamespace.EthereumProvider || wcNamespace.default || wcNamespace
+}
+
+function removeProviderListeners(provider){
+  if(!provider || typeof provider.removeListener !== 'function'){
+    return
+  }
+  provider.removeListener('accountsChanged', handleAccountsChanged)
+  provider.removeListener('chainChanged', handleChainChanged)
+  provider.removeListener('disconnect', handleProviderDisconnect)
+}
+
+function attachProviderListeners(provider){
+  if(!provider || typeof provider.on !== 'function'){
+    return
+  }
+  provider.on('accountsChanged', handleAccountsChanged)
+  provider.on('chainChanged', handleChainChanged)
+  provider.on('disconnect', handleProviderDisconnect)
+}
+
+function normalizeChainId(chainIdValue){
+  if(typeof chainIdValue === 'string'){
+    return chainIdValue.startsWith('0x') ? parseInt(chainIdValue, 16) : Number(chainIdValue)
+  }
+  return Number(chainIdValue)
+}
+
+async function handleAccountsChanged(accounts){
+  if(!accounts || accounts.length === 0){
+    updateConnectionStatus('Wallet: Connected but no account selected')
+    return
+  }
+  const selectedChainId = await getCurrentChainId()
+  const network = NETWORKS[selectedChainId]
+  const shortAccount = accounts[0].slice(0, 6) + '...' + accounts[0].slice(-4)
+  updateConnectionStatus('Wallet: ' + shortAccount + ' via ' + activeConnector + (network ? ' on ' + network.name : ''))
+}
+
+function handleChainChanged(chainIdValue){
+  const chainId = normalizeChainId(chainIdValue)
+  const network = NETWORKS[chainId]
+  if(network){
+    const networkSelect = document.getElementById('networkSelect')
+    if(networkSelect){
+      networkSelect.value = String(chainId)
+    }
+    onNetworkChanged()
+  }
+}
+
+function handleProviderDisconnect(){
+  cleanupConnectorState()
+  updateConnectionStatus('Wallet: Disconnected')
+}
+
+async function getCurrentChainId(){
+  if(!activeProvider || !activeProvider.request){
+    return null
+  }
+  const rawChainId = await activeProvider.request({ method: 'eth_chainId' })
+  return normalizeChainId(rawChainId)
+}
+
+async function setActiveProvider(provider, connectorName){
+  removeProviderListeners(activeProvider)
+  activeProvider = provider
+  activeConnector = connectorName
+  window.ethereum = provider
+  window.web3 = new Web3(provider)
+  attachProviderListeners(provider)
+  window.localStorage.setItem(LAST_CONNECTOR_KEY, connectorName)
+
+  const accounts = await provider.request({ method: 'eth_accounts' })
+  await handleAccountsChanged(accounts)
+
+  if(!setAirdropContractFromInput()){
+    updateMultisenderAddressInput(getSelectedChainId())
+    setAirdropContractFromInput()
+  }
+}
+
+function cleanupConnectorState(){
+  removeProviderListeners(activeProvider)
+  activeProvider = null
+  activeConnector = null
+  window.web3 = null
+  window.ethereum = null
+  window.localStorage.removeItem(LAST_CONNECTOR_KEY)
+}
+
+async function connectInjectedWallet(){
+  if(!window.ethereum){
+    alert('No injected wallet found. Install MetaMask, Rabby, or another EIP-1193 wallet.')
+    return
+  }
+  const injectedProvider = window.ethereum
+  await injectedProvider.request({ method: 'eth_requestAccounts' })
+  await setActiveProvider(injectedProvider, 'Injected wallet')
+}
+
+async function connectWalletConnect(){
+  const EthereumProviderFactory = getWalletConnectFactory()
+  if(!EthereumProviderFactory){
+    alert('WalletConnect provider library failed to load. Refresh the page and try again.')
+    return
+  }
+  const projectId = getWalletConnectProjectId()
+  if(!projectId){
+    alert('Please enter your Reown / WalletConnect Project ID before connecting WalletConnect.')
+    return
+  }
+  persistWalletConnectProjectId()
+
+  const chainId = getSelectedChainId()
+  if(!walletConnectProvider){
+    walletConnectProvider = await EthereumProviderFactory.init({
+      projectId: projectId,
+      chains: [chainId],
+      optionalChains: Object.keys(NETWORKS).map(Number),
+      showQrModal: true,
+      methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData', 'eth_signTypedData_v4'],
+      optionalMethods: ['wallet_switchEthereumChain', 'wallet_addEthereumChain'],
+      metadata: {
+        name: 'Fantom Multisender ERC20',
+        description: 'Batch EVM token and native distributions',
+        url: window.location.origin,
+        icons: [window.location.origin + '/img/favicon.png']
+      }
+    })
+  }
+
+  await walletConnectProvider.connect()
+  await setActiveProvider(walletConnectProvider, 'WalletConnect')
+}
+
+async function disconnectWallet(){
+  if(activeConnector === 'WalletConnect' && walletConnectProvider){
+    await walletConnectProvider.disconnect()
+  }
+  cleanupConnectorState()
+  updateConnectionStatus('Wallet: Not connected')
+}
+
 async function switchNetwork(){
   const chainId = getSelectedChainId()
   const network = NETWORKS[chainId]
-  if(!network || !window.ethereum){
+  if(!network || !activeProvider){
+    alert('Please connect your wallet first.')
     return
   }
   try{
-    await window.ethereum.request({
+    await activeProvider.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: network.chainIdHex }]
     })
   } catch (switchError){
     if(switchError.code === 4902){
-      await window.ethereum.request({
+      await activeProvider.request({
         method: 'wallet_addEthereumChain',
         params: [{
           chainId: network.chainIdHex,
@@ -137,36 +315,44 @@ function onNetworkChanged(){
 setup()
 function setup(){
   window.addEventListener('load', async () => {
-    // Modern dapp browsers...
-    if (window.ethereum) {
-      console.log('interface starting modern')
-      window.web3 = new Web3(ethereum);
-      try {
-        // Request account access if needed
-        await ethereum.enable();
-        // Acccounts now exposed
-        web3.eth.sendTransaction({/* ... */});
-      } catch (error) {
-        // User denied account access...
+    const projectIdInput = document.getElementById('walletConnectProjectId')
+    if(projectIdInput){
+      projectIdInput.value = window.localStorage.getItem(WALLETCONNECT_PROJECT_ID_KEY) || ''
+      projectIdInput.addEventListener('change', persistWalletConnectProjectId)
+      projectIdInput.addEventListener('blur', persistWalletConnectProjectId)
+    }
+
+    document.getElementById('connectInjectedButton').onclick = async function(){
+      try{
+        await connectInjectedWallet()
+      } catch (error){
+        alert('Unable to connect injected wallet. ' + (error.message || ''))
       }
     }
-    // Legacy dapp browsers...
-    else if (window.web3) {
-      console.log('legacydapp')
-      window.web3 = new Web3(web3.currentProvider);
-      // Acccounts always exposed
-      web3.eth.sendTransaction({/* ... */});
+
+    document.getElementById('connectWalletConnectButton').onclick = async function(){
+      try{
+        await connectWalletConnect()
+      } catch (error){
+        alert('Unable to connect WalletConnect. ' + (error.message || ''))
+      }
     }
-    // Non-dapp browsers...
-    else {
-      console.log('No injected EVM wallet detected; EVM actions require MetaMask or another compatible wallet.')
+
+    document.getElementById('disconnectWalletButton').onclick = async function(){
+      try{
+        await disconnectWallet()
+      } catch (error){
+        alert('Unable to disconnect wallet. ' + (error.message || ''))
+      }
     }
+
     document.getElementById('networkSelect').onchange = onNetworkChanged
     document.getElementById('distributionType').onchange = function(){
       if(typeof toggleDistributionUI === 'function'){
         toggleDistributionUI(this.value)
       }
     }
+
     document.getElementById('switchNetworkButton').onclick = async function(){
       try{
         await switchNetwork()
@@ -174,30 +360,26 @@ function setup(){
         alert('Unable to switch network in wallet. Please switch manually.')
       }
     }
+
     onNetworkChanged()
+
     if(typeof toggleDistributionUI === 'function'){
       toggleDistributionUI(document.getElementById('distributionType').value)
     }
-    if(window.web3){
-      setAirdropContractFromInput()
-    }
 
-    if(window.web3){
-      web3.eth.net.getId().then(function(nid){
-        window.netId=nid;
-        console.log('netid ',window.netId)
-      })
-    }
+    updateConnectionStatus('Wallet: Not connected')
 
     if(window.ethereum){
-      window.ethereum.on('chainChanged', function(){
-        window.location.reload()
-      })
+      try{
+        const lastConnector = window.localStorage.getItem(LAST_CONNECTOR_KEY)
+        if(lastConnector === 'Injected wallet'){
+          await connectInjectedWallet()
+        }
+      } catch (error){
+        console.log('Injected reconnect skipped', error)
+      }
     }
 
-    if(window.web3){
-      window.airdropContract=new web3.eth.Contract(airdropAbi,airdropContractAddress)
-    }
-		window.main()
+    window.main()
   });
 }
