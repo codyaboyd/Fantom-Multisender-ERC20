@@ -8,11 +8,17 @@ pragma solidity ^0.8.20;
  * ABI function expected by the app:
  *   airdrop(address[] toAirdrop, uint256[] ethFromEach, uint256 totalEth, uint256 tokensRewarded, address tokenAddress)
  */
-interface IERC20Minimal {
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-}
-
 contract FantomMultisenderFlat {
+    error NoRecipients();
+    error LengthMismatch();
+    error TotalWeightZero();
+    error TotalTokensZero();
+    error TokenZeroAddress();
+    error RecipientZeroAddress();
+    error WeightZero();
+    error WeightSumMismatch();
+    error TransferFromFailed();
+
     event AirdropExecuted(
         address indexed sender,
         address indexed token,
@@ -33,23 +39,22 @@ contract FantomMultisenderFlat {
         address tokenAddress
     ) external {
         uint256 length = toAirdrop.length;
-        require(length > 0, "no recipients");
-        require(length == ethFromEach.length, "length mismatch");
-        require(totalEth > 0, "totalEth is zero");
-        require(tokensRewarded > 0, "tokensRewarded is zero");
-        require(tokenAddress != address(0), "token is zero");
+        if (length == 0) revert NoRecipients();
+        if (length != ethFromEach.length) revert LengthMismatch();
+        if (totalEth == 0) revert TotalWeightZero();
+        if (tokensRewarded == 0) revert TotalTokensZero();
+        if (tokenAddress == address(0)) revert TokenZeroAddress();
 
-        IERC20Minimal token = IERC20Minimal(tokenAddress);
-
+        address sender = msg.sender;
         uint256 runningWeight;
         uint256 distributed;
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < length; ) {
             address recipient = toAirdrop[i];
             uint256 weight = ethFromEach[i];
 
-            require(recipient != address(0), "recipient is zero");
-            require(weight > 0, "weight is zero");
+            if (recipient == address(0)) revert RecipientZeroAddress();
+            if (weight == 0) revert WeightZero();
 
             runningWeight += weight;
 
@@ -61,13 +66,42 @@ contract FantomMultisenderFlat {
                 distributed += amount;
             }
 
-            if (amount > 0) {
-                require(token.transferFrom(msg.sender, recipient, amount), "transferFrom failed");
+            if (amount > 0) _safeTransferFrom(tokenAddress, sender, recipient, amount);
+
+            unchecked {
+                ++i;
             }
         }
 
-        require(runningWeight == totalEth, "weight sum mismatch");
+        if (runningWeight != totalEth) revert WeightSumMismatch();
 
-        emit AirdropExecuted(msg.sender, tokenAddress, length, totalEth, tokensRewarded);
+        emit AirdropExecuted(sender, tokenAddress, length, totalEth, tokensRewarded);
+    }
+
+    function _safeTransferFrom(address token, address from, address to, uint256 amount) private {
+        bool success;
+        assembly {
+            let ptr := mload(0x40)
+            mstore(ptr, 0x23b872dd00000000000000000000000000000000000000000000000000000000)
+            mstore(add(ptr, 0x04), from)
+            mstore(add(ptr, 0x24), to)
+            mstore(add(ptr, 0x44), amount)
+
+            success := call(gas(), token, 0, ptr, 0x64, 0x00, 0x20)
+            if success {
+                switch returndatasize()
+                case 0 {
+                    success := 1
+                }
+                case 0x20 {
+                    success := eq(mload(0x00), 1)
+                }
+                default {
+                    success := 0
+                }
+            }
+        }
+
+        if (!success) revert TransferFromFailed();
     }
 }
