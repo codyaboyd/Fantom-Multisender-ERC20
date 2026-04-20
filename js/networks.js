@@ -25,10 +25,10 @@
     },
     {
       chainId: 250,
-      key: 'fantom',
-      name: 'Fantom',
-      rpcUrls: ['https://rpcapi.fantom.network'],
-      blockExplorerUrls: ['https://ftmscan.com'],
+      key: 'sonic',
+      name: 'Sonic',
+      rpcUrls: ['https://rpc.soniclabs.com'],
+      blockExplorerUrls: ['https://sonicscan.org'],
       multisenderAddress: '0xE29F753b031B2ff6073583bA74bD5ddD73E9fe50',
       isDefault: true
     },

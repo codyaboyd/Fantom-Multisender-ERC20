@@ -213,7 +213,7 @@ async function connectWalletConnect(){
       methods: ['eth_sendTransaction', 'personal_sign', 'eth_signTypedData', 'eth_signTypedData_v4'],
       optionalMethods: ['wallet_switchEthereumChain', 'wallet_addEthereumChain'],
       metadata: {
-        name: 'Fantom Multisender ERC20',
+        name: 'Universal Token Multisender (UTM)',
         description: 'Batch EVM token and native distributions',
         url: window.location.origin,
         icons: [window.location.origin + '/img/favicon.png']
