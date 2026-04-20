@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "programs/*"
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+authors = ["Fantom Multisender Team"]
+license = "MIT"
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
