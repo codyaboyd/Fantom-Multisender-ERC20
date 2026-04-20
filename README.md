@@ -55,9 +55,24 @@ Then open the local URL shown in your terminal (commonly `http://127.0.0.1:8080`
 ## Project structure
 
 - `index.html` – main application page
+- `networks.js` – centralized EVM network registry (chain IDs, RPCs, explorers, default multisender addresses)
 - `interface.js`, `main.js` – primary app logic for EVM + Solana modes
 - `abi.js` – contract ABI definitions
 - `js/`, `css/`, `img/`, `fonts/` – assets and supporting scripts/styles
+
+## Adding a new EVM network
+
+Network configuration is centralized in `networks.js` so expanding to new chains requires only one edit.
+
+1. Open `networks.js` and add a new object in `EVM_NETWORK_LIST` with:
+   - `chainId` (number)
+   - `key` (short identifier)
+   - `name` (display name)
+   - `rpcUrls` (array)
+   - `blockExplorerUrls` (array)
+   - optional `multisenderAddress` (defaults to zero address when omitted)
+2. (Optional) Set `isDefault: true` for the network that should be preselected in the UI.
+3. Refresh the app. The network dropdown and wallet switch flow are generated from this list automatically.
 
 ## Notes and safety
 

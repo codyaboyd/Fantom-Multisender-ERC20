@@ -1,75 +1,12 @@
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const NETWORKS = {
-  1: {
-    key: "ethereum",
-    name: "Ethereum",
-    chainIdHex: "0x1",
-    rpcUrls: ["https://rpc.ankr.com/eth"],
-    blockExplorerUrls: ["https://etherscan.io"],
-    multisenderAddress: ZERO_ADDRESS
-  },
-  56: {
-    key: "bsc",
-    name: "BNB Smart Chain",
-    chainIdHex: "0x38",
-    rpcUrls: ["https://bsc-dataseed.binance.org"],
-    blockExplorerUrls: ["https://bscscan.com"],
-    multisenderAddress: ZERO_ADDRESS
-  },
-  137: {
-    key: "polygon",
-    name: "Polygon",
-    chainIdHex: "0x89",
-    rpcUrls: ["https://polygon-rpc.com"],
-    blockExplorerUrls: ["https://polygonscan.com"],
-    multisenderAddress: ZERO_ADDRESS
-  },
-  250: {
-    key: "fantom",
-    name: "Fantom",
-    chainIdHex: "0xfa",
-    rpcUrls: ["https://rpcapi.fantom.network"],
-    blockExplorerUrls: ["https://ftmscan.com"],
-    multisenderAddress: "0xE29F753b031B2ff6073583bA74bD5ddD73E9fe50"
-  },
-  42161: {
-    key: "arbitrum",
-    name: "Arbitrum One",
-    chainIdHex: "0xa4b1",
-    rpcUrls: ["https://arb1.arbitrum.io/rpc"],
-    blockExplorerUrls: ["https://arbiscan.io"],
-    multisenderAddress: ZERO_ADDRESS
-  },
-  10: {
-    key: "optimism",
-    name: "Optimism",
-    chainIdHex: "0xa",
-    rpcUrls: ["https://mainnet.optimism.io"],
-    blockExplorerUrls: ["https://optimistic.etherscan.io"],
-    multisenderAddress: ZERO_ADDRESS
-  },
-  8453: {
-    key: "base",
-    name: "Base",
-    chainIdHex: "0x2105",
-    rpcUrls: ["https://mainnet.base.org"],
-    blockExplorerUrls: ["https://basescan.org"],
-    multisenderAddress: ZERO_ADDRESS
-  },
-  43114: {
-    key: "avalanche",
-    name: "Avalanche C-Chain",
-    chainIdHex: "0xa86a",
-    rpcUrls: ["https://api.avax.network/ext/bc/C/rpc"],
-    blockExplorerUrls: ["https://snowtrace.io"],
-    multisenderAddress: ZERO_ADDRESS
-  }
-}
+const ZERO_ADDRESS = window.EVM_ZERO_ADDRESS || '0x0000000000000000000000000000000000000000'
+const NETWORKS = window.EVM_NETWORKS || {}
+const NETWORK_LIST = window.EVM_NETWORK_LIST || []
+const DEFAULT_CHAIN_ID = window.DEFAULT_EVM_CHAIN_ID || 250
 
 const WALLETCONNECT_PROJECT_ID_KEY = 'walletconnectProjectId'
 const LAST_CONNECTOR_KEY = 'lastEvmConnector'
 
-let airdropContractAddress = NETWORKS[250].multisenderAddress;
+let airdropContractAddress = (NETWORKS[DEFAULT_CHAIN_ID] || {}).multisenderAddress || ZERO_ADDRESS
 let activeProvider = null
 let activeConnector = null
 let walletConnectProvider = null
@@ -77,6 +14,24 @@ let walletConnectProvider = null
 function getSelectedChainId() {
   const selectedChainId = document.getElementById('networkSelect').value
   return Number(selectedChainId)
+}
+
+function populateNetworkSelect(){
+  const networkSelect = document.getElementById('networkSelect')
+  if(!networkSelect){
+    return
+  }
+
+  networkSelect.innerHTML = ''
+  NETWORK_LIST.forEach(function(network){
+    const option = document.createElement('option')
+    option.value = String(network.chainId)
+    option.textContent = network.name
+    if(network.chainId === DEFAULT_CHAIN_ID){
+      option.selected = true
+    }
+    networkSelect.appendChild(option)
+  })
 }
 
 function getWalletConnectProjectId(){
@@ -321,6 +276,8 @@ function setup(){
       projectIdInput.addEventListener('change', persistWalletConnectProjectId)
       projectIdInput.addEventListener('blur', persistWalletConnectProjectId)
     }
+
+    populateNetworkSelect()
 
     document.getElementById('connectInjectedButton').onclick = async function(){
       try{
