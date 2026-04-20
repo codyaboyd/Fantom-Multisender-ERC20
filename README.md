@@ -55,16 +55,16 @@ Then open the local URL shown in your terminal (commonly `http://127.0.0.1:8080`
 ## Project structure
 
 - `index.html` – main application page
-- `networks.js` – centralized EVM network registry (chain IDs, RPCs, explorers, default multisender addresses)
-- `interface.js`, `main.js` – primary app logic for EVM + Solana modes
-- `abi.js` – contract ABI definitions
+- `js/networks.js` – centralized EVM network registry (chain IDs, RPCs, explorers, default multisender addresses)
+- `js/interface.js`, `js/app.js` – primary app logic for EVM + Solana modes
+- `js/abi.js` – contract ABI definitions
 - `js/`, `css/`, `img/`, `fonts/` – assets and supporting scripts/styles
 
 ## Adding a new EVM network
 
-Network configuration is centralized in `networks.js` so expanding to new chains requires only one edit.
+Network configuration is centralized in `js/networks.js` so expanding to new chains requires only one edit.
 
-1. Open `networks.js` and add a new object in `EVM_NETWORK_LIST` with:
+1. Open `js/networks.js` and add a new object in `EVM_NETWORK_LIST` with:
    - `chainId` (number)
    - `key` (short identifier)
    - `name` (display name)
