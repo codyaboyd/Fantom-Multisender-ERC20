@@ -2,13 +2,13 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title FantomMultisenderFlat
+ * @title UTMMultisenderFlat
  * @notice Flat (no-import) ERC-20 multisender contract that matches the frontend ABI.
  *
  * ABI function expected by the app:
  *   airdrop(address[] toAirdrop, uint256[] ethFromEach, uint256 totalEth, uint256 tokensRewarded, address tokenAddress)
  */
-contract FantomMultisenderFlat {
+contract UTMMultisenderFlat {
     error NoRecipients();
     error LengthMismatch();
     error TotalWeightZero();

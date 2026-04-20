@@ -1,7 +1,7 @@
-# MultiSend EVM + Solana (Batch Native & Token Transfers)
+# Universal Token Multisender (UTM) — EVM + Solana (Batch Native & Token Transfers)
 
 A lightweight web app for sending **ERC-20 tokens, EVM native gas coins, SOL, and SPL tokens** to multiple recipients.  
-This project is designed for token distributions such as airdrops, rewards, and batch payouts on Ethereum, BNB Smart Chain, Polygon, Fantom, Arbitrum, Optimism, Base, Avalanche, and Solana.
+This project is designed for token distributions such as airdrops, rewards, and batch payouts on Ethereum, BNB Smart Chain, Polygon, Sonic, Arbitrum, Optimism, Base, Avalanche, and Solana.
 
 ## What this project does
 
@@ -18,7 +18,7 @@ This project is designed for token distributions such as airdrops, rewards, and 
 
 - Simple browser-based UI
 - ERC-20 multisend workflow
-- EVM native coin multisend workflow (ETH/BNB/MATIC/FTM/AVAX and other EVM native coins)
+- EVM native coin multisend workflow (ETH/BNB/MATIC/S/AVAX and other EVM native coins)
 - Solana SOL multisend workflow
 - Solana SPL token multisend workflow
 - Network selector for major EVM chains + Solana cluster selector
@@ -31,8 +31,8 @@ This project is designed for token distributions such as airdrops, rewards, and 
 ### 1) Clone the repository
 
 ```bash
-git clone https://github.com/<your-org>/Fantom-Multisender-ERC20.git
-cd Fantom-Multisender-ERC20
+git clone https://github.com/<your-org>/UTM-Multisender.git
+cd UTM-Multisender
 ```
 
 ### 2) Serve the app locally
